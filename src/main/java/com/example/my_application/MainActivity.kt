@@ -4,12 +4,15 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -19,7 +22,6 @@ import kotlin.math.pow
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
                 ResistanceCalculator()
@@ -36,7 +38,7 @@ fun ResistanceCalculator() {
     var band1 by remember { mutableStateOf<String?>(null) }
     var band2 by remember { mutableStateOf<String?>(null) }
     var multiplier by remember { mutableStateOf<String?>(null) }
-    var toleranceBand by remember { mutableStateOf<String?>(null) } // Nueva variable para la tolerancia
+    var toleranceBand by remember { mutableStateOf<String?>(null) }
     var isExpanded1 by remember { mutableStateOf(false) }
     var isExpanded2 by remember { mutableStateOf(false) }
     var isExpanded3 by remember { mutableStateOf(false) }
@@ -54,15 +56,31 @@ fun ResistanceCalculator() {
         "Gris" to 8,
         "Blanco" to 9
     )
+
+    val colorMap = mapOf(
+        "Negro" to Color.Black,
+        "Marrón" to Color(0xFFA52A2A),
+        "Rojo" to Color.Red,
+        "Naranja" to Color(0xFFFFA500),
+        "Amarillo" to Color.Yellow,
+        "Verde" to Color.Green,
+        "Azul" to Color.Blue,
+        "Violeta" to Color(0xFF8A2BE2),
+        "Gris" to Color.Gray,
+        "Blanco" to Color.White,
+        "Dorado" to Color(0xFFFFD700),
+        "Plata" to Color(0xFFC0C0C0)
+    )
+
     val toleranceBandValues = mapOf(
-        "Marrón" to 1.0,  // 1% de tolerancia
-        "Rojo" to 2.0,    // 2% de tolerancia
-        "Verde" to 0.5,   // 0.5% de tolerancia
-        "Azul" to 0.25,   // 0.25% de tolerancia
-        "Violeta" to 0.1, // 0.1% de tolerancia
-        "Gris" to 0.05,   // 0.05% de tolerancia
-        "Dorado" to 5.0,  // 5% de tolerancia
-        "Plata" to 10.0   // 10% de tolerancia
+        "Marrón" to 1.0,
+        "Rojo" to 2.0,
+        "Verde" to 0.5,
+        "Azul" to 0.25,
+        "Violeta" to 0.1,
+        "Gris" to 0.05,
+        "Dorado" to 5.0,
+        "Plata" to 10.0
     )
 
     Box(
@@ -71,8 +89,7 @@ fun ResistanceCalculator() {
             .padding(10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Column {
-            // Banda 1
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             ExposedDropdownMenuBox(
                 expanded = isExpanded1,
                 onExpandedChange = { isExpanded1 = !isExpanded1 }
@@ -101,7 +118,6 @@ fun ResistanceCalculator() {
                 }
             }
 
-            // Banda 2
             ExposedDropdownMenuBox(
                 expanded = isExpanded2,
                 onExpandedChange = { isExpanded2 = !isExpanded2 }
@@ -130,7 +146,6 @@ fun ResistanceCalculator() {
                 }
             }
 
-            // Multiplicador
             ExposedDropdownMenuBox(
                 expanded = isExpanded3,
                 onExpandedChange = { isExpanded3 = !isExpanded3 }
@@ -159,13 +174,12 @@ fun ResistanceCalculator() {
                 }
             }
 
-            // Banda de tolerancia
             ExposedDropdownMenuBox(
                 expanded = isExpanded4,
                 onExpandedChange = { isExpanded4 = !isExpanded4 }
             ) {
                 TextField(
-                    value = toleranceBand ?: "Selecciona Tolerancia",
+                    value = toleranceBand ?: "Tolerancia",
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(isExpanded4) },
@@ -188,7 +202,41 @@ fun ResistanceCalculator() {
                 }
             }
 
-            // Botón Calcular
+            // Canvas to draw the resistor and bands
+            Spacer(modifier = Modifier.height(20.dp))
+            Canvas(modifier = Modifier
+                .size(width = 300.dp, height = 100.dp)
+                .background(Color.LightGray)) {
+                val bandColors = listOf(
+                    colorMap[band1] ?: Color.Transparent,
+                    colorMap[band2] ?: Color.Transparent,
+                    colorMap[multiplier] ?: Color.Transparent,
+                    colorMap[toleranceBand] ?: Color.Transparent
+                )
+
+                // Draw resistor body
+                drawRoundRect(
+                    color = Color.DarkGray,
+                    size = size.copy(width = 260.dp.toPx(), height = 60.dp.toPx()),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(10.dp.toPx())
+                )
+
+                // Draw color bands
+                val bandWidth = 15.dp.toPx()
+                val startX = (size.width - 260.dp.toPx()) / 2
+                bandColors.forEachIndexed { index, color ->
+                    drawLine(
+                        color = color,
+                        start = androidx.compose.ui.geometry.Offset(startX + index * 50.dp.toPx(), 20.dp.toPx()),
+                        end = androidx.compose.ui.geometry.Offset(startX + index * 50.dp.toPx(), size.height - 20.dp.toPx()),
+                        strokeWidth = bandWidth,
+                        cap = StrokeCap.Square
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             Button(onClick = {
                 // Obtener los valores de las bandas de color
                 val value1 = colorBandValues[band1] ?: 0
@@ -221,7 +269,7 @@ fun ResistanceCalculator() {
 
 @Preview(showBackground = true)
 @Composable
-fun DefaultPreview() {
+fun PreviewResistanceCalculator() {
     MyApplicationTheme {
         ResistanceCalculator()
     }
